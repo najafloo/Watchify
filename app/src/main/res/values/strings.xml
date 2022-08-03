@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Watchify</string>
+    <string name="watchify">WatchiFy!!</string>
+    <string name="sendmessage">SendMessage</string>
+    <string name="name">Name</string>
+    <string name="start_server">Start_Server</string>
+    <string name="pairdevice">pairDevice</string>
+    <string name="text">text</string>
+    <string name="translate">translate</string>
+    <string name="delete_model">Delete Model</string>
+    <string name="download">download</string>
+    <string name="english">English</string>
+    <string name="germany">Germany</string>
+    <string name="select_destination_language">Select Destination Language</string>
+</resources>

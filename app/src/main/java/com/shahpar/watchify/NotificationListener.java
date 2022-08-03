@@ -5,19 +5,16 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import com.shahpar.watchify.translateor.Language;
-import com.shahpar.watchify.translateor.TranslateAPI;
+import com.shahpar.watchify.translateor.TranslateListener;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -25,7 +22,6 @@ import java.util.TimerTask;
 public class NotificationListener extends NotificationListenerService {
 
     private String TAG = "SHAHPAR";
-    private final static String DESTINATION_LANGUAGE = "english";
 
     private PowerManager m_powerManager;
     private NotificationManager mNotificationManager;
@@ -33,12 +29,8 @@ public class NotificationListener extends NotificationListenerService {
     private NotificationCompat.Builder notification = null;
     private NotificationCompat.Builder progressBuilder = null;
     private NotificationChannel mChannel;
-    private NotificationChannel channelLow;
-    private NotificationChannel channelHigh;
-    private NotificationChannel groupChannel;
     private int mCurrentId = 0;
     private int mClearId = 0;
-    private String desLanguage = Language.ENGLISH;
     private Timer mTimer = null;
     private TimerTask mTimerTask = null;
     CharSequence csTitle;
@@ -247,31 +239,9 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        if (intent != null && intent.getExtras() != null) {
-            boolean isEnglish = intent.getBooleanExtra(DESTINATION_LANGUAGE, true);
-            setDestinationLanguage(isEnglish);
-            Log.d(TAG, "!!!!!!!!!!!!!!!!!!!!! onStartCommand isEnglish = " + isEnglish);
-        }
-
-        return START_STICKY;
-    }
-
-    private void setDestinationLanguage(boolean isEnglish) {
-        if(isEnglish)
-            desLanguage = Language.ENGLISH;
-        else
-            desLanguage = Language.GERMAN;
-    }
-
-    @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
 
-        Log.d(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@ onNotificationPosted: ");
-
         String pack = sbn.getPackageName();
-        String ticker = "";
         Bundle extras = sbn.getNotification().extras;
 
         if (extras == null || pack.contains("com.shahpar.watchify") || !sbn.isClearable())
@@ -279,30 +249,25 @@ public class NotificationListener extends NotificationListenerService {
 
         csTitle = extras.getCharSequence(Notification.EXTRA_TITLE);
         csText = extras.getCharSequence(Notification.EXTRA_TEXT);
+
         if (csTitle == null || csText == null)
             return;
 
-        TranslateAPI translateApi = new TranslateAPI(Language.AUTO_DETECT, desLanguage, csText.toString());
-        translateApi.setTranslateListener(new TranslateAPI.TranslateListener() {
+        MyApplication.getTranslator().translate(csText.toString() , new TranslateListener() {
             @Override
             public void onSuccess(String translatedText) {
-                Log.d(TAG, "==================== onSuccess: " + translatedText);
-                String title = "";
-                String text = "";
 
-                title = mapString(csTitle.toString());
-                text = mapString("\n" + translatedText);
+                String title = mapString(csTitle.toString());
+                String text = mapString("\n" + translatedText);
+
+                notifyMessage(title, text);
             }
 
             @Override
             public void onFailure(String ErrorText) {
-                String title = "";
-                String text = "";
 
-                Log.d("SHAHPAR", "Error on listerner");
-
-                title = mapString(csTitle.toString());
-                text = mapString(csText.toString());
+                String title = mapString(csTitle.toString());
+                String text = mapString(csText.toString());
 
                 notifyMessage(title, text);
             }
@@ -311,12 +276,8 @@ public class NotificationListener extends NotificationListenerService {
 
     @SuppressLint("RestrictedApi")
     public void notifyMessage(String sender, String content) {
-        Log.d(TAG, "######################## notifyMessage: ");
-
         if (sender.equals("") || content.equals(""))
             return;
-
-        Log.i(TAG, "######## :" + sender + "\n" + content);
 
         if (mBuilder == null) {
             String channelId = getPackageName();

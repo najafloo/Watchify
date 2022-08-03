@@ -6,21 +6,22 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatRadioButton;
 
 import com.shahpar.watchify.databinding.ActivityMainBinding;
+import com.shahpar.watchify.translateor.Language;
+import com.shahpar.watchify.translateor.TranslateListener;
 
 public class MainActivity extends AppCompatActivity {
 
     SharedPreferences sharedPreferences;
-    private static final String TAG = "SHAHPAR";
     ActivityMainBinding binding;
 
-    private final static String DESTINATION_LANGUAGE = "english";
+    private final static String DESTINATION_KEY = "english";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,10 +37,10 @@ public class MainActivity extends AppCompatActivity {
 
         boolean isEnglish = isEnglish();
 
+        setDestinationLanguage(isEnglish);
+
         binding.btnEnglish.setChecked(isEnglish);
         binding.btnGermany.setChecked(!isEnglish);
-
-        startService(isEnglish);
 
         binding.grpGroupButton.setOnCheckedChangeListener((radioGroup, i) -> {
             boolean isEng = true;
@@ -49,27 +50,54 @@ public class MainActivity extends AppCompatActivity {
                 isEng = false;
             }
 
-            saveDestination(isEng);
-            startService(isEng);
+            setDestinationLanguage(isEng);
         });
+
+        binding.btnTranslate.setOnClickListener(view -> {
+            MyApplication.getTranslator().translate(binding.edtText.getText().toString(), new TranslateListener() {
+                @Override
+                public void onSuccess(String translatedText) {
+                    binding.edtTranslate.setText(translatedText);
+                }
+
+                @Override
+                public void onFailure(String ErrorText) {
+                    Toast.makeText(getApplicationContext(), "Translate failed", Toast.LENGTH_LONG);
+                }
+            });
+        });
+
+        startService();
+    }
+
+    private void setDestinationLanguage(boolean isEnglish) {
+        saveDestination(isEnglish);
+
+        String desLanguage;
+
+        if(isEnglish)
+            desLanguage = Language.ENGLISH;
+        else
+            desLanguage = Language.GERMAN;
+
+        MyApplication.getTranslator().setDestinationLanguage(desLanguage);
     }
 
     private void saveDestination(boolean isEnglish) {
         @SuppressLint("CommitPrefEdits")
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean(DESTINATION_LANGUAGE, isEnglish);
-        editor.apply();
+        editor.putBoolean(DESTINATION_KEY, isEnglish);
+        editor.commit();
     }
 
-    private void startService(boolean isEnglish) {
+    private void startService() {
         Intent serviceIntent = new Intent(this, NotificationListener.class);
-        serviceIntent.putExtra(DESTINATION_LANGUAGE, isEnglish);
         startService(serviceIntent);
     }
 
     private boolean isEnglish() {
         sharedPreferences = getApplicationContext().getSharedPreferences("app_pref", MODE_PRIVATE);
-        return sharedPreferences.getBoolean(DESTINATION_LANGUAGE, true);
+        return sharedPreferences.getBoolean(DESTINATION_KEY, true);
     }
 
     private boolean checkHasAccess() {

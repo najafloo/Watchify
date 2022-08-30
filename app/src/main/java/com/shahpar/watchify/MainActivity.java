@@ -16,16 +16,20 @@ import com.shahpar.watchify.databinding.ActivityMainBinding;
 import com.shahpar.watchify.translateor.Language;
 import com.shahpar.watchify.translateor.TranslateListener;
 
+import java.util.Objects;
+
 public class MainActivity extends AppCompatActivity {
 
     SharedPreferences sharedPreferences;
     ActivityMainBinding binding;
+    boolean isEnglish;
 
     private final static String DESTINATION_KEY = "english";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
@@ -35,26 +39,30 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         }
 
-        boolean isEnglish = isEnglish();
+        isEnglish = isEnglish();
 
         setDestinationLanguage(isEnglish);
 
         binding.btnEnglish.setChecked(isEnglish);
         binding.btnGermany.setChecked(!isEnglish);
 
+        binding.btnShow.setOnClickListener(view -> {
+            if (isEnglish)
+                MyApplication.getNotificationRepresnter().notifyMessage(getString(R.string.watchify_english), getString(R.string.watchify_english_message));
+            else
+                MyApplication.getNotificationRepresnter().notifyMessage(getString(R.string.watchify_germany), getString(R.string.watchify_gerany_message));
+        });
+
         binding.grpGroupButton.setOnCheckedChangeListener((radioGroup, i) -> {
-            boolean isEng = true;
             AppCompatRadioButton radioButton = findViewById(i);
 
-            if (!radioButton.getTag().equals("eng")) {
-                isEng = false;
-            }
+            isEnglish = radioButton.getTag().equals("eng");
 
-            setDestinationLanguage(isEng);
+            setDestinationLanguage(isEnglish);
         });
 
         binding.btnTranslate.setOnClickListener(view -> {
-            MyApplication.getTranslator().translate(binding.edtText.getText().toString(), new TranslateListener() {
+            MyApplication.getTranslator().translate(Objects.requireNonNull(binding.edtText.getText()).toString(), new TranslateListener() {
                 @Override
                 public void onSuccess(String translatedText) {
                     binding.edtTranslate.setText(translatedText);
@@ -62,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onFailure(String ErrorText) {
-                    Toast.makeText(getApplicationContext(), "Translate failed", Toast.LENGTH_LONG);
+                    Toast.makeText(getApplicationContext(), "Translate failed", Toast.LENGTH_LONG).show();
                 }
             });
         });
@@ -75,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
 
         String desLanguage;
 
-        if(isEnglish)
+        if (isEnglish)
             desLanguage = Language.ENGLISH;
         else
             desLanguage = Language.GERMAN;

@@ -12,4 +12,9 @@
     <string name="english">English</string>
     <string name="germany">Germany</string>
     <string name="select_destination_language">Select Destination Language</string>
+    <string name="watchify_english">Watchify (English)</string>
+    <string name="watchify_germany">Watchify (Germany)</string>
+    <string name="watchify_english_message">This is a test notification from Watchify!</string>
+    <string name="watchify_gerany_message">Dies ist eine Testbenachrichtigung von Watchify!</string>
+    <string name="show_test_notify">Test notification</string>
 </resources>

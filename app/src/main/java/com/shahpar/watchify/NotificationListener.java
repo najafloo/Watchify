@@ -1,42 +1,24 @@
 package com.shahpar.watchify;
 
-import android.annotation.SuppressLint;
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.content.Context;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.PowerManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 
-import androidx.core.app.NotificationCompat;
-
 import com.shahpar.watchify.translateor.TranslateListener;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NotificationListener extends NotificationListenerService {
 
     private String TAG = "SHAHPAR";
 
-    private PowerManager m_powerManager;
-    private NotificationManager mNotificationManager;
-    private NotificationCompat.Builder mBuilder = null;
-    private NotificationCompat.Builder notification = null;
-    private NotificationCompat.Builder progressBuilder = null;
-    private NotificationChannel mChannel;
-    private int mCurrentId = 0;
-    private int mClearId = 0;
-    private Timer mTimer = null;
-    private TimerTask mTimerTask = null;
     CharSequence csTitle;
     CharSequence csText;
+    private String myPackageName;
 
-    final Handler mHandler = new Handler();
+    private final Map<String, Long> lastNotWhens = new HashMap<>();
 
     String mapString(String input) {
         String out = input;
@@ -106,11 +88,9 @@ public class NotificationListener extends NotificationListenerService {
         out = out.replace("۸", "8");
         out = out.replace("۹", "9");
 
-        out = out.replace(" ", " ");
         out = out.replace("؟", "?");
         out = out.replace("٪", "%");
         out = out.replace("،", ",");
-        out = out.replace(".", ".");
         out = out.replace("؛", ";");
         out = out.replace("ـ", "-");
         out = out.replace("؍", "/");
@@ -225,11 +205,7 @@ public class NotificationListener extends NotificationListenerService {
 
     @Override
     public void onCreate() {
-        m_powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mCurrentId = 0;
-        mClearId = 0;
-        mNotificationManager.cancelAll();
+        myPackageName = getApplication().getPackageName();
         super.onCreate();
     }
 
@@ -244,8 +220,26 @@ public class NotificationListener extends NotificationListenerService {
         String pack = sbn.getPackageName();
         Bundle extras = sbn.getNotification().extras;
 
-        if (extras == null || pack.contains("com.shahpar.watchify") || !sbn.isClearable())
+//        Log.d(TAG, "1 onNotificationPosted: package name : " + pack + ", number = " + sbn.getNotification().number
+//                + ", publicVersion = " + sbn.getNotification().publicVersion
+//                + ", flags = " + sbn.getNotification().flags
+//                + ", when = " + sbn.getNotification().when
+//                + ", tickerText = " + sbn.getNotification().tickerText);
+
+        if ((sbn.getNotification().flags & Notification.FLAG_GROUP_SUMMARY) != 0) {
             return;
+        }
+
+        Long lastWhen = lastNotWhens.get(sbn.getPackageName());
+        if (lastWhen != null && lastWhen >= sbn.getNotification().when)
+            return;
+
+        lastNotWhens.put(sbn.getPackageName(), sbn.getNotification().when);
+
+        if (extras == null || pack.contains(myPackageName) || !sbn.isClearable())
+            return;
+
+//        Log.d(TAG, "2 onNotificationPosted: "/* + extras.toString()*/);
 
         csTitle = extras.getCharSequence(Notification.EXTRA_TITLE);
         csText = extras.getCharSequence(Notification.EXTRA_TEXT);
@@ -253,14 +247,13 @@ public class NotificationListener extends NotificationListenerService {
         if (csTitle == null || csText == null)
             return;
 
-        MyApplication.getTranslator().translate(csText.toString() , new TranslateListener() {
+        MyApplication.getTranslator().translate(csText.toString(), new TranslateListener() {
             @Override
             public void onSuccess(String translatedText) {
 
                 String title = mapString(csTitle.toString());
                 String text = mapString("\n" + translatedText);
-
-                notifyMessage(title, text);
+                MyApplication.getNotificationRepresnter().notifyMessage(title, text);
             }
 
             @Override
@@ -269,81 +262,13 @@ public class NotificationListener extends NotificationListenerService {
                 String title = mapString(csTitle.toString());
                 String text = mapString(csText.toString());
 
-                notifyMessage(title, text);
+                MyApplication.getNotificationRepresnter().notifyMessage(title, text);
             }
         });
     }
 
-    @SuppressLint("RestrictedApi")
-    public void notifyMessage(String sender, String content) {
-        if (sender.equals("") || content.equals(""))
-            return;
-
-        if (mBuilder == null) {
-            String channelId = getPackageName();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                int importance = NotificationManager.IMPORTANCE_HIGH;
-                if (mChannel == null) {
-                    mChannel = mNotificationManager.getNotificationChannel(channelId);
-                    if (mChannel == null) {
-                        mChannel = new NotificationChannel(channelId, "NT", importance);
-                        mChannel.setDescription(content);
-                        mNotificationManager.createNotificationChannel(mChannel);
-                    }
-                }
-            }
-
-            mBuilder = new NotificationCompat.Builder(getApplicationContext(), channelId);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                mBuilder.setChannelId(channelId);
-            else
-                mBuilder.setPriority(Notification.PRIORITY_HIGH);
-
-            mBuilder.setSmallIcon(R.drawable.icon) // required
-                    .setAutoCancel(true)
-                    .setGroup("Group")
-                    .setGroupSummary(true)
-                    .setColor(0xff2196F3);
-        }
-
-        int defaults = 0;
-
-        mBuilder.mActions.clear();
-        mBuilder.setContentTitle(sender)
-                .setDefaults(defaults);
-
-        mBuilder.setContentText(content);
-
-        mNotificationManager.notify(++mCurrentId, mBuilder.build());
-
-        if (mTimer == null) {
-            mTimer = new Timer();
-            mTimerTask = new TimerTask() {
-                public void run() {
-                    mHandler.post(new Runnable() {
-                        public void run() {
-                            if (mClearId < mCurrentId) {
-                                mNotificationManager.cancel(++mClearId);
-                            } else {
-                                mCurrentId = 0;
-                                mClearId = 0;
-                                if (mTimer != null) {
-                                    mTimer.cancel();
-                                    mTimer = null;
-                                    mTimerTask = null;
-                                }
-                            }
-                        }
-                    });
-                }
-            };
-            mTimer.schedule(mTimerTask, 1000, 1000);
-        }
-    }
-
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-//        super.onNotificationRemoved(sbn);
+        super.onNotificationRemoved(sbn);
     }
 }

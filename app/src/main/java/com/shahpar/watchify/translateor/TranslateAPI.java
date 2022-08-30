@@ -73,7 +73,7 @@ public class TranslateAPI {
                 listener.onFailure("Network Error");
             } else {
                 try {
-                    Log.d(TAG, "onPostExecute: response = " + resp);
+//                    Log.d(TAG, "onPostExecute: response = " + resp);
                     JSONArray main = new JSONArray(resp);
                     JSONArray total = (JSONArray) main.get(0);
                     for (int i = 0; i < total.length(); i++) {

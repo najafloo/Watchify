@@ -17,4 +17,10 @@
     <string name="watchify_english_message">This is a test notification from Watchify!</string>
     <string name="watchify_gerany_message">Dies ist eine Testbenachrichtigung von Watchify!</string>
     <string name="show_test_notify">Test notification</string>
+    <string name="about">About</string>
+    <string name="amin_najafloo_shahpar">Amin Najafloo</string>
+    <string name="android_developer">Android Developer</string>
+    <string name="amin_najafloo_gmail_com">amin.najafloo@gmail.com</string>
+    <string name="aboutme">He is an Android Developer with over ten years of experience developing software manily focused on Android apps. He loves the Android environment, and also likes to learn, participate in app development, API design, discussing UI and UX, new app features and ideas. Experienced in Java, Kotlin, Android Studio and Qt/C++/QML.</string>
+    <string name="abouttitle">About</string>
 </resources>
